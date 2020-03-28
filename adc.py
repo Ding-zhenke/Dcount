@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Mar 21 14:54:26 2020
-
+update 2020.3.28
 @author: 31214
 """
 import numpy as np
@@ -60,7 +60,8 @@ class myfft:
             print('it doesnt meet sample requirement' )
         #窗函数选择
         self.winname1 = winname
-        if self.winname1 == None:
+        if (self.winname1 == None) or (self.winname1=='square'):
+            self.winname = None
             self.powerrecover = 1
             self.altituderecover = 1
             self.ENBW = 1
@@ -140,17 +141,18 @@ class myfft:
         plt.legend()
         plt.show()
     #FFT后的图像
+    #输入数据要求是ADC原始数据/2^（ADC_bit-1）
     def my_fft(self,data):
         #频率分辨率
         self.data = self.win(data)
+        self.data /=self.ADCvpp #还原成归一化数字值
         self.size = len(self.data)
         self.df = self.fs/self.size
         if self.df == 0:
             print("please confirm fs")
         #fft之后归一化
-        self.da = abs(np.fft.fft(self.data)) / self.size*2
-        self.da[0] /= 2 
-        self.power = self.da ** 2
+        self.da = abs(np.fft.fft(self.data)) / self.size
+        
         if self.unit =='dB':
             self.da = 20*np.log10(self.da)
         elif self.unit =='dBFS':
@@ -162,7 +164,9 @@ class myfft:
             self.da -= 10*np.log10(self.fs/self.size*self.ENBW)         
             self.da -= 10*np.log10(2*self.BW/self.fs)
         elif self.unit == 'altitude':
-            self.da = self.da            
+            self.da = self.da *2 *self.ADCvpp 
+            self.da[0] /= 2     
+            self.power = self.da ** 2 #功率     
         else:
             print("uint is error!")
         self.output = self.da
@@ -183,12 +187,12 @@ class myfft:
     
 #参数设定    
 Fs = 300
-winname = 'hann'
+winname = 'blackman'
 fre = 30
 ADC_bit = 12
 ADC_Vpp = 3.3
 BW = 1000
-unit ='dB'#'dB'
+unit ='altitude'#'dB'
 wave ='sin'
 #图像大小
 plt.figure(figsize=(16,8))
